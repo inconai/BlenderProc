@@ -1,3 +1,5 @@
+import blenderproc as bproc
+
 """ Download cc textures from ambientCG.com """
 
 import shutil
@@ -7,6 +9,8 @@ from pathlib import Path
 import requests
 
 from blenderproc.python.utility.SetupUtility import SetupUtility
+
+
 
 
 def cli():
@@ -34,7 +38,7 @@ def cli():
         # download the json file, which contains all information
         json_url = f"https://ambientcg.com/api/v2/full_json?include=downloadData&limit={offset_size}" \
                    f"&offset={current_offset}&type=material"
-        request = requests.get(json_url, headers=headers, timeout=30)
+        request = requests.get(json_url, headers=headers)
         json_data = request.json()
         current_offset += offset_size
         if "foundAssets" in json_data and len(json_data["foundAssets"]) > 0:
