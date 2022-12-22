@@ -24,7 +24,7 @@ def write_coco_annotations(output_dir: str, instance_segmaps: Optional[List[np.n
                            append_to_existing_output: bool = True, segmap_output_key: str = "segmap",
                            segcolormap_output_key: str = "segcolormap", rgb_output_key: str = "colors",
                            jpg_quality: int = 95, label_mapping: Optional[LabelIdMapping] = None,
-                           file_prefix: str = ""):
+                           file_prefix: str = "", indent: Optional[Union[int, str]] = None):
     """ Writes coco annotations in the following steps:
     1. Locate the seg images
     2. Locate the rgb maps
@@ -35,7 +35,7 @@ def write_coco_annotations(output_dir: str, instance_segmaps: Optional[List[np.n
     :param output_dir: Output directory to write the coco annotations
     :param instance_segmaps: List of instance segmentation maps
     :param instance_attribute_maps: per-frame mappings with idx, class and optionally supercategory/bop_dataset_name
-    :param colors: List of color images
+    :param colors: List of color images. Does not support stereo images, enter left and right inputs subsequently.
     :param color_file_format: Format to save color images in
     :param mask_encoding_format: Encoding format of the binary masks. Default: 'rle'. Available: 'rle', 'polygon'.
     :param supercategory: name of the dataset/supercategory to filter for, e.g. a specific BOP dataset set
@@ -55,13 +55,20 @@ def write_coco_annotations(output_dir: str, instance_segmaps: Optional[List[np.n
                           If None, is given then the `name` field in the csv files is used or - if not existing -
                           the category id itself is used.
     :param file_prefix: Optional prefix for image file names
+    :param indent: If indent is a non-negative integer or string, then the annotation output
+                   will be pretty-printed with that indent level. An indent level of 0, negative, or "" will
+                   only insert newlines. None (the default) selects the most compact representation.
+                   Using a positive integer indent indents that many spaces per level.
+                   If indent is a string (such as "\t"), that string is used to indent each level.
     """
-    if instance_segmaps is None:
-        instance_segmaps = []
+    instance_segmaps = [] if instance_segmaps is None else list(instance_segmaps)
+    colors = [] if colors is None else list(colors)
     if instance_attribute_maps is None:
         instance_attribute_maps = []
-    if colors is None:
-        colors = []
+
+    if len(colors) > 0 and len(colors[0].shape) == 4:
+        raise ValueError("BlenderProc currently does not support writing coco annotations for stereo images. "
+                         "However, you can enter left and right images / segmaps separately.")
 
     # Create output directory
     os.makedirs(os.path.join(output_dir, 'images'), exist_ok=True)
@@ -162,7 +169,7 @@ def write_coco_annotations(output_dir: str, instance_segmaps: Optional[List[np.n
 
     print("Writing coco annotations to " + coco_annotations_path)
     with open(coco_annotations_path, 'w', encoding="utf-8") as fp:
-        json.dump(coco_output, fp)
+        json.dump(coco_output, fp, indent=indent)
 
 
 def binary_mask_to_rle(binary_mask: np.ndarray) -> Dict[str, List[int]]:
